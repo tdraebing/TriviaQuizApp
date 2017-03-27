@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">QuizApp</string>
+
+    <string-array name="difficulties_array">
+        <item>any</item>
+        <item>easy</item>
+        <item>medium</item>
+        <item>hard</item>
+    </string-array>
+</resources>
