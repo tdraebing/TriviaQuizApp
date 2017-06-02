@@ -1,8 +1,8 @@
 package org.driven_by_data.quizapp;
 
-import com.google.gson.annotations.SerializedName;
+import android.text.Html;
 
-import org.apache.commons.lang3.StringEscapeUtils;
+import com.google.gson.annotations.SerializedName;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,6 +23,18 @@ class Question {
     private List<String> incorrectAnswers;
 
     private List<String> allAnswers;
+    private double probabilityTextAnswer;
+
+    public void processQuestion(){
+        if ( !type.equals("boolean")){
+            probabilityTextAnswer = Math.random();
+            if (probabilityTextAnswer > 0.8){
+                type = "text";
+            }
+        }
+
+        combineAnswers();
+    }
 
     public void combineAnswers(){
         allAnswers = new ArrayList<String>();
@@ -31,12 +43,7 @@ class Question {
         Collections.shuffle(allAnswers);
     }
 
-    public List<String> getAllAnswers() {
-        if (allAnswers == null){
-            combineAnswers();
-        }
-        return allAnswers;
-    }
+    public List<String> getAllAnswers() { return allAnswers; }
 
     public String getCategory(){
         return category;
@@ -51,7 +58,7 @@ class Question {
     }
 
     public String getQuestion() {
-        return StringEscapeUtils.unescapeHtml4(question);
+        return Html.fromHtml(this.question).toString();
     }
 
     public String getCorrectAnswer() {

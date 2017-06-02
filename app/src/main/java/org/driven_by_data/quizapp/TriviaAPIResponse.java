@@ -18,7 +18,11 @@ public class TriviaAPIResponse {
         return response_code;
     }
 
+
     public List<Question> getQuestions() {
+        for (Question question : questions){
+            question.processQuestion();
+        }
         return questions;
     }
 }

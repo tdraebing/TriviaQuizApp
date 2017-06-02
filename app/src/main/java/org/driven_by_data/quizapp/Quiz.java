@@ -47,6 +47,15 @@ public class Quiz {
         this.questions = questions;
     }
 
+    public void addQuestions(List<Question> questions) {
+        this.numberTotalQuestions += questions.size();
+        if ( this.questions == null){
+            this.questions = questions;
+        } else {
+            this.questions.addAll(questions);
+        }
+    }
+
     public Question getCurrentQuestion() throws QuestionSetCompletedException{
         if (currentQuestionID > numberTotalQuestions){
             throw new QuestionSetCompletedException("All questions have already been answered. " +

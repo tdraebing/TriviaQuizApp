@@ -1,9 +1,12 @@
 package org.driven_by_data.quizapp;
 
+import android.util.SparseIntArray;
+
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
 import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -12,16 +15,17 @@ import java.util.ArrayList;
 
 class Configuration {
     private int numberRounds;
-    private int selectedCategory;
+    private ArrayList<Integer> selectedCategories;
     private String difficulty;
-    private String url;
+    private ArrayList<String> urls;
 
     private ArrayList<QuestionCategory> possibleCategories;
 
     public Configuration(){
         numberRounds = 10;
         difficulty = "any";
-        selectedCategory = 0;
+        selectedCategories = new ArrayList<>();
+        urls = new ArrayList<>();
         buildEndpointUrl();
     }
 
@@ -33,23 +37,25 @@ class Configuration {
         this.numberRounds = numberRounds;
     }
 
-    public int getSelectedCategory() {
-        return selectedCategory;
+    public List<Integer> getSelectedCategories() {
+        return selectedCategories;
     }
 
-    public void setSelectedCategory(int selectedCategory) {
-        this.selectedCategory = selectedCategory;
+    public void setSelectedCategory(ArrayList<Integer> selectedCategories) {
+        this.selectedCategories = selectedCategories;
     }
 
-    public void setCategoryFromString(final String category) {
-        Predicate<QuestionCategory> predicate = new Predicate<QuestionCategory>() {
-            @Override
-            public boolean apply(QuestionCategory cat) {
-                return cat.getName().equals(category);
-            }
-        };
-        QuestionCategory result = Iterables.find(possibleCategories, predicate);
-        selectedCategory = result.getId();
+    public void setCategoriesFromStrings(List<String> categories) {
+
+        for (final String category: categories){
+            Predicate<QuestionCategory> predicate = new Predicate<QuestionCategory>() {
+                @Override
+                public boolean apply(QuestionCategory cat) {
+                    return cat.getName().equals(category);
+                }
+            };
+            selectedCategories.add(Iterables.find(possibleCategories, predicate).getId());
+        }
 
     }
 
@@ -65,8 +71,16 @@ class Configuration {
         return possibleCategories;
     }
 
-    public String getUrl() {
-        return url;
+    public ArrayList<String> getPossibleCategoriesAsStrings() {
+        ArrayList<String> stringCategories = new ArrayList<>();
+        for (QuestionCategory qc: possibleCategories){
+            stringCategories.add(qc.getName());
+        }
+        return stringCategories;
+    }
+
+    public ArrayList<String> getUrls() {
+        return urls;
     }
 
     public void setPossibleCategories(ArrayList<QuestionCategory> pc) {
@@ -89,13 +103,38 @@ class Configuration {
         return cat;
     }
 
-    public void buildEndpointUrl(){
-        url = String.format("https://opentdb.com/api.php?amount=%d", numberRounds);
-        if(!difficulty.equals("any")){
-            url += String.format("&difficulty=%s", difficulty);
+    private SparseIntArray chooseCategories(){
+        int filledCount = numberRounds;
+        SparseIntArray categoryList = new SparseIntArray();
+        ArrayList<Integer> remainingCategories = selectedCategories;
+        while (remainingCategories.size() > 1){
+            int catid = (int )(Math.random() * remainingCategories.size());
+            int c = remainingCategories.get(catid);
+            int count = (int )(Math.random() * filledCount);
+            categoryList.put(c, count);
+            filledCount -= count;
+            remainingCategories.remove(catid);
         }
-        if(selectedCategory != 0){
-            url += String.format("&category=%d", selectedCategory);
+
+        categoryList.put(remainingCategories.get(0), filledCount);
+
+        return categoryList;
+    }
+
+    public void buildEndpointUrl(){
+        this.urls.clear();
+        String base_url = "https://opentdb.com/api.php?";
+        if(!difficulty.equals("any")){
+            base_url += String.format("&difficulty=%s", difficulty);
+        }
+        if(selectedCategories.isEmpty() | selectedCategories.contains(0)){
+            this.urls.add(base_url + String.format("&amount=%d", numberRounds));
+        } else {
+            SparseIntArray chosenCategories = chooseCategories();
+            for (int i = 0; i < chosenCategories.size(); i++){
+                this.urls.add(base_url + String.format("&amount=%d&category=%d",
+                        chosenCategories.valueAt(i), chosenCategories.keyAt(i)));
+            }
         }
     }
 }

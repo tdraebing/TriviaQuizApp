@@ -46,12 +46,10 @@
                 android:text="Choose a selectedCategory: "
                 android:textSize="20sp"/>
 
-            <Spinner
+            <org.driven_by_data.quizapp.MultiSelectSpinner
                 android:id="@+id/spinner_category"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
-            </Spinner>
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"/>
 
 
             <TextView

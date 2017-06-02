@@ -72,12 +72,7 @@
             android:textAlignment="center"
             android:textSize="24sp"/>
 
-        <ListView
-            android:id="@+id/answers"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
 
-        </ListView>
 
     </LinearLayout>
 
