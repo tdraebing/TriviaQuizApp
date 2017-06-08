@@ -5,7 +5,7 @@ package org.driven_by_data.quizapp;
  */
 
 public class QuestionSetCompletedException extends Exception {
-    public QuestionSetCompletedException(String message){
+    public QuestionSetCompletedException(String message) {
         super(message);
     }
 }

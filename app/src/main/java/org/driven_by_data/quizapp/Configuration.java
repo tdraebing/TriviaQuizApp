@@ -1,5 +1,7 @@
 package org.driven_by_data.quizapp;
 
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.util.SparseIntArray;
 
 import com.google.common.base.Predicate;
@@ -13,7 +15,7 @@ import java.util.List;
  * Created by thoma on 3/25/2017.
  */
 
-class Configuration {
+class Configuration implements Parcelable {
     private int numberRounds;
     private ArrayList<Integer> selectedCategories;
     private String difficulty;
@@ -21,12 +23,23 @@ class Configuration {
 
     private ArrayList<QuestionCategory> possibleCategories;
 
-    public Configuration(){
+    public Configuration() {
         numberRounds = 10;
         difficulty = "any";
         selectedCategories = new ArrayList<>();
         urls = new ArrayList<>();
         buildEndpointUrl();
+    }
+
+    public Configuration(Parcel in) {
+        numberRounds = in.readInt();
+        selectedCategories = new ArrayList<>();
+        in.readList(selectedCategories, null);
+        difficulty = in.readString();
+        urls = new ArrayList<>();
+        in.readStringList(urls);
+        possibleCategories = new ArrayList<>();
+        in.readList(possibleCategories, null);
     }
 
     public int getNumberRounds() {
@@ -47,7 +60,7 @@ class Configuration {
 
     public void setCategoriesFromStrings(List<String> categories) {
 
-        for (final String category: categories){
+        for (final String category : categories) {
             Predicate<QuestionCategory> predicate = new Predicate<QuestionCategory>() {
                 @Override
                 public boolean apply(QuestionCategory cat) {
@@ -73,7 +86,7 @@ class Configuration {
 
     public ArrayList<String> getPossibleCategoriesAsStrings() {
         ArrayList<String> stringCategories = new ArrayList<>();
-        for (QuestionCategory qc: possibleCategories){
+        for (QuestionCategory qc : possibleCategories) {
             stringCategories.add(qc.getName());
         }
         return stringCategories;
@@ -84,7 +97,7 @@ class Configuration {
     }
 
     public void setPossibleCategories(ArrayList<QuestionCategory> pc) {
-        possibleCategories = new ArrayList<>(pc.size()+1);
+        possibleCategories = new ArrayList<>(pc.size() + 1);
 
         QuestionCategory anyCat = new QuestionCategory();
         anyCat.setId(0);
@@ -94,23 +107,23 @@ class Configuration {
         possibleCategories.addAll(pc);
     }
 
-    public ArrayList<String> getCategoryNameArray(){
+    public ArrayList<String> getCategoryNameArray() {
         ArrayList<String> cat = new ArrayList<>(possibleCategories.size());
-        for (QuestionCategory c: possibleCategories
-             ) {
+        for (QuestionCategory c : possibleCategories
+                ) {
             cat.add(c.getName());
         }
         return cat;
     }
 
-    private SparseIntArray chooseCategories(){
+    private SparseIntArray chooseCategories() {
         int filledCount = numberRounds;
         SparseIntArray categoryList = new SparseIntArray();
         ArrayList<Integer> remainingCategories = selectedCategories;
-        while (remainingCategories.size() > 1){
-            int catid = (int )(Math.random() * remainingCategories.size());
+        while (remainingCategories.size() > 1) {
+            int catid = (int) (Math.random() * remainingCategories.size());
             int c = remainingCategories.get(catid);
-            int count = (int )(Math.random() * filledCount);
+            int count = (int) (Math.random() * filledCount);
             categoryList.put(c, count);
             filledCount -= count;
             remainingCategories.remove(catid);
@@ -121,20 +134,44 @@ class Configuration {
         return categoryList;
     }
 
-    public void buildEndpointUrl(){
+    public void buildEndpointUrl() {
         this.urls.clear();
         String base_url = "https://opentdb.com/api.php?";
-        if(!difficulty.equals("any")){
+        if (!difficulty.equals("any")) {
             base_url += String.format("&difficulty=%s", difficulty);
         }
-        if(selectedCategories.isEmpty() | selectedCategories.contains(0)){
+        if (selectedCategories.isEmpty() | selectedCategories.contains(0)) {
             this.urls.add(base_url + String.format("&amount=%d", numberRounds));
         } else {
             SparseIntArray chosenCategories = chooseCategories();
-            for (int i = 0; i < chosenCategories.size(); i++){
+            for (int i = 0; i < chosenCategories.size(); i++) {
                 this.urls.add(base_url + String.format("&amount=%d&category=%d",
                         chosenCategories.valueAt(i), chosenCategories.keyAt(i)));
             }
         }
     }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeInt(numberRounds);
+        dest.writeList(selectedCategories);
+        dest.writeString(difficulty);
+        dest.writeStringList(urls);
+        dest.writeList(possibleCategories);
+    }
+
+    public static final Parcelable.Creator CREATOR = new Parcelable.Creator() {
+        public Configuration createFromParcel(Parcel in) {
+            return new Configuration(in);
+        }
+
+        public Configuration[] newArray(int size) {
+            return new Configuration[size];
+        }
+    };
 }

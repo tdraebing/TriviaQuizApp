@@ -4,8 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:layout_margin="8dp"
+    android:orientation="vertical"
     tools:context="org.driven_by_data.quizapp.MainActivity">
 
     <RelativeLayout
@@ -18,12 +18,12 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:layout_marginTop="8dp"
-            android:textSize="60sp"
+            android:text=" ????? "
             android:textAlignment="center"
             android:textColor="#66FFFFFF"
-            android:text=" ????? "
-            tools:layout_editor_absoluteY="12dp"
-            tools:layout_editor_absoluteX="26dp" />
+            android:textSize="60sp"
+            tools:layout_editor_absoluteX="26dp"
+            tools:layout_editor_absoluteY="12dp" />
 
         <TextView
             android:id="@+id/title_app"
@@ -31,14 +31,13 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:layout_marginTop="16dp"
-            android:textSize="40sp"
-            android:textStyle="bold"
+            android:text="Quiz"
             android:textAlignment="center"
             android:textColor="@android:color/holo_red_light"
-            android:text="Quiz"
-            tools:layout_editor_absoluteY="12dp"
-            tools:layout_editor_absoluteX="26dp" />
-
+            android:textSize="40sp"
+            android:textStyle="bold"
+            tools:layout_editor_absoluteX="26dp"
+            tools:layout_editor_absoluteY="12dp" />
 
 
     </RelativeLayout>
@@ -48,7 +47,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:text="Configure"/>
+        android:text="Configure" />
 
     <Button
         android:id="@+id/button_start"
@@ -59,7 +58,7 @@
         android:textAllCaps="true" />
 
     <LinearLayout
-        android:id="@+id/view_question"
+        android:id="@+id/question_container"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="6"
@@ -70,8 +69,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textAlignment="center"
-            android:textSize="24sp"/>
-
+            android:textSize="24sp" />
 
 
     </LinearLayout>
@@ -81,9 +79,8 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:text="Next Question"
-        android:enabled="false"/>
-
+        android:enabled="false"
+        android:text="Next Question" />
 
 
 </android.support.v7.widget.LinearLayoutCompat>

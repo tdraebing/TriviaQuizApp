@@ -1,17 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RadioGroup xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/answers"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:id="@+id/answers">
-    <RadioButton android:id="@+id/radio_true"
+    android:layout_height="match_parent">
+
+    <RadioButton
+        android:id="@+id/radio_true"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="True"
-        android:tag="True"/>
-    <RadioButton android:id="@+id/radio_false"
+        android:tag="True"
+        android:text="True" />
+
+    <RadioButton
+        android:id="@+id/radio_false"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="False"
-        android:tag="False"/>
+        android:tag="False"
+        android:text="False" />
 
 </RadioGroup>

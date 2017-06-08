@@ -20,7 +20,7 @@ public class TriviaAPIResponse {
 
 
     public List<Question> getQuestions() {
-        for (Question question : questions){
+        for (Question question : questions) {
             question.processQuestion();
         }
         return questions;

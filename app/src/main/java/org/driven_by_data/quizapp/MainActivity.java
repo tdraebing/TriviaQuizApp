@@ -70,14 +70,16 @@ public class MainActivity extends AppCompatActivity {
         gson = gsonBuilder.create();
 
         config = new Configuration();
-        fetchCategories();
+        if (savedInstanceState == null) {
+            fetchCategories();
+        }
 
         final Button button_start = (Button) findViewById(R.id.button_start);
         button_start.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if (!isGameActive){
+                        if (!isGameActive) {
                             startGame();
                             button_start.setText("Quit game");
                         } else {
@@ -92,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if (!isGameActive){
+                        if (!isGameActive) {
                             showConfigDialog();
                         }
                     }
@@ -103,23 +105,46 @@ public class MainActivity extends AppCompatActivity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if (!isEnding){
-                            try{
+                        if (!isEnding) {
+                            try {
                                 emptyAnswerView();
-                                populateQuestionView(quiz.getCurrentQuestion());
-                            }catch (QuestionSetCompletedException e){
+                                populateQuestionView(quiz.advanceQuestion());
+                            } catch (QuestionSetCompletedException e) {
                                 endGame();
                             }
-                        }else{
+                        } else {
                             endGame();
                         }
                     }
                 });
     }
 
+    @Override
+    public void onRestoreInstanceState(Bundle savedInstanceState) {
+        QUESTION_ENDPOINTS = savedInstanceState.getStringArrayList("endpoints");
+        isGameActive = savedInstanceState.getBoolean("is_game_active");
+        isEnding = savedInstanceState.getBoolean("is_ending");
+        quiz = savedInstanceState.getParcelable("quiz");
+        config = savedInstanceState.getParcelable("config");
+
+        if (isGameActive) {
+            populateQuestionView(quiz.getCurrentQuestion());
+        }
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putStringArrayList("endpoints", QUESTION_ENDPOINTS);
+        outState.putBoolean("is_game_active", isGameActive);
+        outState.putBoolean("is_ending", isEnding);
+        outState.putParcelable("quiz", quiz);
+        outState.putParcelable("config", config);
+        super.onSaveInstanceState(outState);
+    }
+
     private void emptyAnswerView() {
         LinearLayout questionView =
-                (LinearLayout) findViewById(R.id.view_question);
+                (LinearLayout) findViewById(R.id.question_container);
         questionView.removeView(findViewById(answers));
     }
 
@@ -134,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void fetchQuestions() {
         loadingDialog.show();
-        for (String endpoint: QUESTION_ENDPOINTS){
+        for (String endpoint : QUESTION_ENDPOINTS) {
             StringRequest request = new StringRequest(Request.Method.GET, endpoint,
                     onQuestionsLoaded, onRequestError);
 
@@ -157,12 +182,12 @@ public class MainActivity extends AppCompatActivity {
         public void onResponse(String response) {
             TriviaAPIResponse json = gson.fromJson(response, TriviaAPIResponse.class);
             quiz.addQuestions(json.getQuestions());
-            try{
-                if (quiz.getNumberTotalQuestions() == config.getNumberRounds()){
-                    populateQuestionView(quiz.getCurrentQuestion());
+            try {
+                if (quiz.getNumberTotalQuestions() == config.getNumberRounds()) {
+                    populateQuestionView(quiz.advanceQuestion());
                     loadingDialog.dismiss();
                 }
-            }catch (QuestionSetCompletedException e){
+            } catch (QuestionSetCompletedException e) {
                 Log.e("MainActivity", e.getMessage());
                 loadingDialog.dismiss();
             }
@@ -177,51 +202,104 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private void createMultipleAnswers(final Question question){
+    private void displayResultMultipleAnswers(Question question,
+                                              ListView list,
+                                              boolean isOld) {
+        quiz.setNumberAnsweredQuestions(quiz.getNumberAnsweredQuestions() + 1);
+        final ArrayList<View> givenView = new ArrayList<View>();
+        list.findViewsWithText(givenView, question.getGivenAnswer(),
+                View.FIND_VIEWS_WITH_TEXT);
+        TextView item = (TextView) givenView.get(0);
+        if (question.getGivenAnswer().equals(question.getCorrectAnswer())) {
+            item.setBackgroundColor(Color.rgb(15, 85, 30));
+            quiz.setNumberCorrectQuestions(quiz.getNumberCorrectQuestions() + 1);
+        } else {
+            item.setBackgroundColor(Color.rgb(120, 15, 15));
+            final ArrayList<View> outViews = new ArrayList<View>();
+            list.findViewsWithText(outViews, question.getCorrectAnswer(),
+                    View.FIND_VIEWS_WITH_TEXT);
+            TextView correct = (TextView) outViews.get(0);
+            correct.setTextColor(Color.rgb(15, 85, 30));
+        }
+        list.setEnabled(false);
+
+        if (quiz.getNumberAnsweredQuestions() >= quiz.getNumberTotalQuestions()) {
+            isEnding = true;
+        }
+
+        Button buttonNext = (Button) findViewById(R.id.button_next);
+        buttonNext.setEnabled(true);
+    }
+
+    private void createMultipleAnswers(final Question question) {
         List<String> answers = question.getAllAnswers();
 
-        LinearLayout questionView = (LinearLayout) findViewById(R.id.view_question);
-        ListView answerList = (ListView) getLayoutInflater().inflate(R.layout.multiple_answers, null);
+        final LinearLayout questionView = (LinearLayout) findViewById(R.id.question_container);
+        final ListView answerList = (ListView) getLayoutInflater().inflate(R.layout.multiple_answers, null);
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_list_item_1,
                 answers);
+        answerList.setTag(666);
         answerList.setAdapter(adapter);
         answerList.setEnabled(true);
-        answerList.setOnItemClickListener(new AdapterView.OnItemClickListener(){
+        answerList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> adapter, View view, int position, long arg){
+            public void onItemClick(AdapterView<?> adapter, View view, int position, long arg) {
                 TextView item = (TextView) adapter.getChildAt(position);
-                quiz.setNumberAnsweredQuestions(quiz.getNumberAnsweredQuestions()+1);
+                question.setGivenAnswer(item.getText().toString());
+                displayResultMultipleAnswers(question,
+                        (ListView) questionView.findViewWithTag(666), false);
 
-                if (item.getText().equals(question.getCorrectAnswer())){
-                    item.setBackgroundColor(Color.rgb(15,85,30));
-                    quiz.setNumberCorrectQuestions(quiz.getNumberCorrectQuestions()+1);
-                }else{
-                    item.setBackgroundColor(Color.rgb(120,15,15));
-                    final ArrayList<View> outViews = new ArrayList<View>();
-                    adapter.findViewsWithText(outViews, question.getCorrectAnswer(),
-                            View.FIND_VIEWS_WITH_TEXT);
-                    TextView correct = (TextView) outViews.get(0);
-                    correct.setTextColor(Color.rgb(15,85,30));
+            }
+        });
+        answerList.post(new Runnable() {
+            @Override
+            public void run() {
+                if (question.getGivenAnswer() != null) {
+                    displayResultMultipleAnswers(question,
+                            (ListView) questionView.findViewWithTag(666), true);
                 }
-                adapter.setEnabled(false);
-
-                if (quiz.getNumberAnsweredQuestions() >= quiz.getNumberTotalQuestions()){
-                    isEnding = true;
-                }
-
-                Button buttonNext = (Button) findViewById(R.id.button_next);
-                buttonNext.setEnabled(true);
-
             }
         });
         questionView.addView(answerList);
     }
 
-    private void createBooleanAnswer(final Question question){
+    private void displayResultBooleanAnswer(Question question,
+                                            RadioButton checkedButton,
+                                            RadioGroup group,
+                                            boolean isOld) {
         final String answer = question.getCorrectAnswer();
+        if (checkedButton.getTag().toString().equals(answer)) {
+            checkedButton.setBackgroundColor(Color.rgb(15, 85, 30));
+            if (!isOld) {
+                quiz.setNumberCorrectQuestions(quiz.getNumberCorrectQuestions() + 1);
+            }
+        } else {
+            checkedButton.setBackgroundColor(Color.rgb(120, 15, 15));
+        }
 
-        LinearLayout questionView = (LinearLayout) findViewById(R.id.view_question);
+
+        if (!isOld) {
+            quiz.setNumberAnsweredQuestions(quiz.getNumberAnsweredQuestions() + 1);
+        } else {
+            checkedButton.setChecked(true);
+        }
+
+        for (int i = 0; i < group.getChildCount(); i++) {
+            group.getChildAt(i).setEnabled(false);
+        }
+
+        if (quiz.getNumberAnsweredQuestions() >= quiz.getNumberTotalQuestions()) {
+            isEnding = true;
+        }
+
+        Button buttonNext = (Button) findViewById(R.id.button_next);
+        buttonNext.setEnabled(true);
+    }
+
+    private void createBooleanAnswer(final Question question) {
+
+        LinearLayout questionView = (LinearLayout) findViewById(R.id.question_container);
         LayoutInflater inflater = this.getLayoutInflater();
         final View radioList = inflater.inflate(R.layout.boolean_answer, null);
         final RadioGroup answers = (RadioGroup) radioList.findViewById(R.id.answers);
@@ -230,35 +308,62 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(RadioGroup group, @IdRes int checkedId) {
                 RadioButton checkedButton = (RadioButton) group.findViewById(checkedId);
-                if (checkedButton.getTag().toString().equals(answer)){
-                    checkedButton.setBackgroundColor(Color.rgb(15,85,30));
-                    quiz.setNumberCorrectQuestions(quiz.getNumberCorrectQuestions()+1);
-                } else {
-                    checkedButton.setBackgroundColor(Color.rgb(120,15,15));
-                }
-
-                quiz.setNumberAnsweredQuestions(quiz.getNumberAnsweredQuestions()+1);
-
-                for (int i = 0; i < group.getChildCount(); i++){
-                    group.getChildAt(i).setEnabled(false);
-                }
-
-                if (quiz.getNumberAnsweredQuestions() >= quiz.getNumberTotalQuestions()){
-                    isEnding = true;
-                }
-
-                Button buttonNext = (Button) findViewById(R.id.button_next);
-                buttonNext.setEnabled(true);
+                question.setGivenAnswer(checkedButton.getTag().toString());
+                displayResultBooleanAnswer(question, checkedButton, group, false);
             }
         });
+
+        if (question.getGivenAnswer() != null) {
+            displayResultBooleanAnswer(question,
+                    (RadioButton) answers.findViewWithTag(question.getGivenAnswer()),
+                    answers, true);
+        }
         questionView.addView(radioList);
     }
 
-    private void createTextAnswer(Question question){
 
-        final String answer = question.getCorrectAnswer();
+    private void displayResultTextAnswer(Question question,
+                                         EditText answerEdit,
+                                         View editTextAnswer,
+                                         Button confirmAnswer,
+                                         boolean isOld) {
 
-        LinearLayout questionView = (LinearLayout) findViewById(R.id.view_question);
+        final String correctAnswer = question.getCorrectAnswer();
+
+        if (correctAnswer.equals(question.getGivenAnswer())) {
+            answerEdit.setBackgroundColor(Color.rgb(15, 85, 30));
+            if (!isOld) {
+                quiz.setNumberCorrectQuestions(quiz.getNumberCorrectQuestions() + 1);
+            }
+        } else {
+            answerEdit.setBackgroundColor(Color.rgb(120, 15, 15));
+            TextView correctAnswerView = (TextView)
+                    editTextAnswer.findViewById(R.id.correct_answer);
+            correctAnswerView.setText(String.format("The correct answer would have been: %s",
+                    correctAnswer));
+            correctAnswerView.setVisibility(View.VISIBLE);
+        }
+
+        if (!isOld) {
+            quiz.setNumberAnsweredQuestions(quiz.getNumberAnsweredQuestions() + 1);
+        } else {
+            answerEdit.setText(question.getGivenAnswer());
+        }
+
+        answerEdit.setEnabled(false);
+        confirmAnswer.setEnabled(false);
+
+        if (quiz.getNumberAnsweredQuestions() >= quiz.getNumberTotalQuestions()) {
+            isEnding = true;
+        }
+
+        Button buttonNext = (Button) findViewById(R.id.button_next);
+        buttonNext.setEnabled(true);
+    }
+
+    private void createTextAnswer(final Question question) {
+
+        LinearLayout questionView = (LinearLayout) findViewById(R.id.question_container);
         LayoutInflater inflater = this.getLayoutInflater();
         final View editTextAnswer = inflater.inflate(R.layout.text_answer, null);
         final Button confirmAnswer = (Button) editTextAnswer.findViewById(R.id.confirm_answer);
@@ -268,74 +373,57 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 String givenAnswer = answerEdit.getText().toString();
-                if (answer.equals(givenAnswer)){
-                    answerEdit.setBackgroundColor(Color.rgb(15,85,30));
-                    quiz.setNumberCorrectQuestions(quiz.getNumberCorrectQuestions()+1);
-                }else{
-                    answerEdit.setBackgroundColor(Color.rgb(120,15,15));
-                    TextView correctAnswer = (TextView)
-                            editTextAnswer.findViewById(R.id.correct_answer);
-                    correctAnswer.setText(String.format("The correct answer would have been: %s",
-                            answer));
-                    correctAnswer.setVisibility(View.VISIBLE);
-                }
-
-                quiz.setNumberAnsweredQuestions(quiz.getNumberAnsweredQuestions()+1);
-
-                answerEdit.setEnabled(false);
-                confirmAnswer.setEnabled(false);
-
-                if (quiz.getNumberAnsweredQuestions() >= quiz.getNumberTotalQuestions()){
-                    isEnding = true;
-                }
-
-                Button buttonNext = (Button) findViewById(R.id.button_next);
-                buttonNext.setEnabled(true);
+                question.setGivenAnswer(givenAnswer);
+                displayResultTextAnswer(question, answerEdit, editTextAnswer, confirmAnswer, false);
             }
         });
+
+        if (question.getGivenAnswer() != null) {
+            displayResultTextAnswer(question, answerEdit, editTextAnswer, confirmAnswer, true);
+        }
         questionView.addView(editTextAnswer);
     }
 
 
-    private void populateQuestionView(final Question question){
+    private void populateQuestionView(final Question question) {
         Button buttonNext = (Button) findViewById(R.id.button_next);
         buttonNext.setEnabled(false);
-        if(quiz.getNumberAnsweredQuestions() >= quiz.getNumberTotalQuestions()){
+        if (quiz.getNumberAnsweredQuestions() >= quiz.getNumberTotalQuestions()) {
             endGame();
-        }else{
+        } else {
             TextView questionText = (TextView) findViewById(R.id.question);
             questionText.setText(question.getQuestion());
 
-            if (question.getType().equals("multiple")){
+            if (question.getType().equals("multiple")) {
                 createMultipleAnswers(question);
-            } else if (question.getType().equals("boolean")){
+            } else if (question.getType().equals("boolean")) {
                 createBooleanAnswer(question);
-            } else if (question.getType().equals("text")){
+            } else if (question.getType().equals("text")) {
                 createTextAnswer(question);
             }
         }
 
     }
 
-    private void startGame(){
+    private void startGame() {
         isGameActive = true;
         QUESTION_ENDPOINTS = config.getUrls();
         quiz = new Quiz();
         fetchQuestions();
     }
 
-    private void  endGame(){
+    private void endGame() {
         isGameActive = false;
         showEndGameDialog();
     }
 
-    private void createRoundNumberPicker(View dialogView){
+    private void createRoundNumberPicker(View dialogView) {
         final NumberPicker numberQuestions = (NumberPicker) dialogView.findViewById(R.id.num_questions);
         numberQuestions.setMinValue(1);
         numberQuestions.setMaxValue(100);
     }
 
-    private void createDifficultySpinner(View dialogView){
+    private void createDifficultySpinner(View dialogView) {
         class DifficultySpinnerActivity extends Activity implements AdapterView.OnItemSelectedListener {
 
             public void onItemSelected(AdapterView<?> parent, View view,
@@ -357,7 +445,7 @@ public class MainActivity extends AppCompatActivity {
         spinner.setSelection(0);
     }
 
-    private void createCategorySpinner(View dialogView){
+    private void createCategorySpinner(View dialogView) {
         MultiSelectSpinner spinner = (MultiSelectSpinner)
                 dialogView.findViewById(R.id.spinner_category);
         spinner.setItems(config.getPossibleCategoriesAsStrings());

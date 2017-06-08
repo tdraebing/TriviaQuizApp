@@ -1,5 +1,9 @@
 package org.driven_by_data.quizapp;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -7,12 +11,25 @@ import java.util.List;
  */
 
 
-public class Quiz {
+public class Quiz implements Parcelable {
     private List<Question> questions;
     private int numberTotalQuestions;
     private int numberAnsweredQuestions = 0;
     private int numberCorrectQuestions = 0;
-    private int currentQuestionID = 0;
+    private int nextQuestionID = 0;
+
+    public Quiz() {
+
+    }
+
+    public Quiz(Parcel in) {
+        questions = new ArrayList<>();
+        in.readList(questions, null);
+        numberTotalQuestions = in.readInt();
+        numberAnsweredQuestions = in.readInt();
+        numberCorrectQuestions = in.readInt();
+        nextQuestionID = in.readInt();
+    }
 
     public int getNumberTotalQuestions() {
         return numberTotalQuestions;
@@ -49,20 +66,48 @@ public class Quiz {
 
     public void addQuestions(List<Question> questions) {
         this.numberTotalQuestions += questions.size();
-        if ( this.questions == null){
+        if (this.questions == null) {
             this.questions = questions;
         } else {
             this.questions.addAll(questions);
         }
     }
 
-    public Question getCurrentQuestion() throws QuestionSetCompletedException{
-        if (currentQuestionID > numberTotalQuestions){
+    public Question advanceQuestion() throws QuestionSetCompletedException {
+        if (nextQuestionID > numberTotalQuestions) {
             throw new QuestionSetCompletedException("All questions have already been answered. " +
                     "Start a new round.");
         }
-        Question currentQuestion = questions.get(currentQuestionID);
-        currentQuestionID += 1;
+        Question currentQuestion = questions.get(nextQuestionID);
+        nextQuestionID += 1;
         return currentQuestion;
     }
+
+    public Question getCurrentQuestion() {
+        return questions.get(nextQuestionID - 1);
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeList(questions);
+        dest.writeInt(numberTotalQuestions);
+        dest.writeInt(numberAnsweredQuestions);
+        dest.writeInt(numberCorrectQuestions);
+        dest.writeInt(nextQuestionID);
+    }
+
+    public static final Parcelable.Creator CREATOR = new Parcelable.Creator() {
+        public Quiz createFromParcel(Parcel in) {
+            return new Quiz(in);
+        }
+
+        public Quiz[] newArray(int size) {
+            return new Quiz[size];
+        }
+    };
 }
